@@ -1,9 +1,15 @@
-from helper import *
+import os
+
+import cv2
+import keras
+import numpy as np
+import pyautogui
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-import keras
 
-ocr_model = keras.models.load_model("monkeymanager/models/model_weights_and_optimizer.h5")
+ocr_model = keras.models.load_model(
+    "monkeymanager/models/model_weights_and_optimizer.h5"
+)
 
 
 def custom_ocr(img, resolution=pyautogui.size()):
@@ -25,8 +31,6 @@ def custom_ocr(img, resolution=pyautogui.size()):
     )
 
     chrImages = []
-    chrImagesMinX = {}
-    chrs = {}
 
     for c in cnts:
         minX = c[0][0][0]
@@ -81,7 +85,7 @@ def custom_ocr(img, resolution=pyautogui.size()):
     for prediction in predictions:
         value = np.argmax(prediction)
         if value == 10:
-            number += '/'
+            number += "/"
         else:
             number += str(value)
 
