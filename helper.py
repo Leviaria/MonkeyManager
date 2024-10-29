@@ -1,21 +1,22 @@
+import copy
 import datetime
-import keyboard
-import cv2
-import pyautogui
-import time
+import json
+import math
+import os
+import random
+import re
 import signal
 import sys
-import numpy as np
-import re
-import json
-from ahk import AHK
+import time
 from enum import Enum
-import os
-from os.path import exists
-import math
-import copy
-import random
 from functools import reduce
+from os.path import exists
+
+import cv2
+import keyboard
+import numpy as np
+import pyautogui
+from ahk import AHK
 
 ahk = AHK()
 
@@ -272,7 +273,6 @@ def parseBTD6InstructionsFile(
         )
         return None
     elif fileConfig["resolution"] != getResolutionString(targetResolution):
-        # customPrint("rescaling " + filename + " from " + fileConfig['resolution'] + " to " + getResolutionString(targetResolution))
         rawInputFile = convertPositionsInString(
             rawInputFile,
             [int(x) for x in fileConfig["resolution"].split("x")],
@@ -589,7 +589,6 @@ def parseBTD6InstructionsFile(
             }
             newSteps.append(newStep)
 
-
         if len(newSteps):
             newMapConfig["steps"] += newSteps
 
@@ -597,7 +596,6 @@ def parseBTD6InstructionsFile(
     return newMapConfig
 
 
-# reads a playthrough file, converts it and saves the converted file under the same name in own_playthroughs(except changed resolution)
 def convertBTD6InstructionsFile(filename, targetResolution):
     fileConfig = parseBTD6InstructionFileName(filename)
     if not fileConfig:
@@ -930,7 +928,6 @@ def checkBTD6InstructionsFileCompatability(filename, gamemode):
     return gamemode in listBTD6InstructionsFileCompatability(filename)
 
 
-# doesn't yet consider unlocked_monkey_upgrades
 def canUserUsePlaythrough(playthrough):
     if (
         not playthrough["fileConfig"]["map"] in userConfig["unlocked_maps"]
@@ -1132,8 +1129,6 @@ def allPlaythroughsToList(playthroughs):
     return playthroughList
 
 
-# todo: freeplay xp gain
-# "Upon reaching freeplay mode, you gain 30% of the normal XP, and after round 100 (if on freeplay mode), 10% of the normal XP, although heroes will not be affected by the cut at this point."
 def getRoundTotalBaseXP(round):
     if round < 0:
         return 0
@@ -1303,8 +1298,10 @@ def getMonkeyKnowledgeStatus():
 def keyToAHK(x):
     return "{sc" + hex(x).replace("0x", "") + "}" if type(x) == type(int()) else x
 
+
 def sendKey(key):
-    ahk.send(keyToAHK(key), key_delay=15, key_press_duration=30, send_mode='Event')
+    ahk.send(keyToAHK(key), key_delay=15, key_press_duration=30, send_mode="Event")
+
 
 def mapnameToKeyname(mapname):
     return (
@@ -1338,7 +1335,7 @@ def upgradeRequiresConfirmation(monkey, path):
         return False
     if monkey["upgrades"][path] - 1 == -1:
         return False
-    if monkey["upgrades"][path] - 1 >= 5:  # paragons
+    if monkey["upgrades"][path] - 1 >= 5:
         return True
     return towers["monkeys"][monkey["type"]]["upgrade_confirmation"][path][
         monkey["upgrades"][path] - 1
@@ -1359,9 +1356,7 @@ sandboxGamemodes = {
 
 maps = json.load(open("monkeymanager/namespaces/maps.json"))
 gamemodes = json.load(open("monkeymanager/namespaces/gamemodes.json"))
-keybinds = json.load(
-    open("monkeymanager/namespaces/keybinds.json")
-)  # https://www.autohotkey.com/docs/commands/Send.htm
+keybinds = json.load(open("monkeymanager/namespaces/keybinds.json"))
 towers = json.load(open("monkeymanager/namespaces/towers.json"))
 allImageAreas = json.load(open("monkeymanager/namespaces/image_areas.json"))
 if getResolutionString() in allImageAreas:
