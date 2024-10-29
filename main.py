@@ -14,6 +14,7 @@ menuChangeDelay = 1
 
 def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
     nativeResolution = (2560, 1440)
+    
     requiredComparisonImages = [
         {"category": "screens", "name": "startmenu"},
         {"category": "screens", "name": "map_selection"},
@@ -33,6 +34,7 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
         {"category": "game_state", "name": "game_playing_slow"},
         {"category": "game_state", "name": "game_playing_fast"},
     ]
+    
     optionalComparisonImages = [
         {
             "category": "screens",
@@ -40,10 +42,12 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
             "for": [Mode.CHASE_REWARDS.name],
         }
     ]
+    
     requiredLocateImages = [
         {"name": "remove_obstacle_confirm_button"},
         {"name": "button_home"},
     ]
+    
     optionalLocateImages = [
         {"name": "unknown_insta", "for": [Mode.CHASE_REWARDS.name]},
         {"name": "unknown_insta_mask", "for": [Mode.CHASE_REWARDS.name]},
@@ -54,103 +58,70 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
             "lives": (187, 32, 350, 84),
             "mana_lives": (89, 78, 185, 132),
             "money": (486, 25, 959, 90),
-            "round": (1912, 39, 2080, 95),
+            "round": (1912, 39, 2080, 95) if gamemode not in ["impoppable", "chimps"] else (1880, 39, 2080, 95),
         }
     }
 
-    if gamemode == "impoppable" or gamemode == "chimps":
-        rawSegmentCoordinates["2560x1440"]["round"] = (1880, 39, 2080, 95)
+    resolutionString = getResolutionString(resolution)
+    segmentCoordinates = rawSegmentCoordinates.get(resolutionString, {})
+    
+    if not segmentCoordinates:
+        nativeCoords = rawSegmentCoordinates[getResolutionString(nativeResolution)]
+        segmentCoordinates = {
+            key: tuple(
+                round(x * (resolution[i % 2] / nativeResolution[i % 2]))
+                for i, x in enumerate(coords)
+            )
+            for key, coords in nativeCoords.items()
+        }
 
-    if getResolutionString(resolution) in rawSegmentCoordinates:
-        segmentCoordinates = rawSegmentCoordinates[getResolutionString(resolution)]
-    else:
-        segmentCoordinates = {}
-        for key in rawSegmentCoordinates[getResolutionString(nativeResolution)]:
-            segmentCoordinates[key] = [
-                (
-                    round(x * resolution[0] / nativeResolution[0])
-                    if i % 2 == 0
-                    else round(x * resolution[1] / nativeResolution[1])
-                )
-                for i, x in enumerate(
-                    rawSegmentCoordinates[getResolutionString(nativeResolution)][key]
-                )
-            ]
-
-    imagesDir = "monkeymanager/images/" + getResolutionString(resolution) + "/"
-
-    comparisonImages = {}
-    locateImages = {}
-
+    imagesDir = f"monkeymanager/images/{resolutionString}/"
     if not exists(imagesDir):
         return None
 
     supportedModes = dict.fromkeys([e.name for e in Mode], True)
+    comparisonImages = {}
+    locateImages = {}
 
-    for img in requiredComparisonImages:
-        filename = (img["filename"] if "filename" in img else img["name"]) + ".png"
-        if not exists(imagesDir + filename):
-            print(filename + " missing!")
-            return None
-        elif "category" in img:
-            if not img["category"] in comparisonImages:
-                comparisonImages[img["category"]] = {}
-            comparisonImages[img["category"]][img["name"]] = cv2.imread(
-                imagesDir + filename
-            )
-        else:
-            comparisonImages[img["name"]] = cv2.imread(imagesDir + filename)
+    def load_images(image_list, target_dict, optional=False):
+        for img in image_list:
+            filename = f"{img.get('filename', img['name'])}.png"
+            filepath = imagesDir + filename
+            
+            if not exists(filepath):
+                if optional and "for" in img:
+                    for mode in img["for"]:
+                        supportedModes.pop(mode, None)
+                elif not optional:
+                    print(f"{filename} missing!")
+                    return False
+                continue
+                
+            category = img.get("category")
+            if category:
+                target_dict.setdefault(category, {})[img["name"]] = cv2.imread(filepath)
+            else:
+                target_dict[img["name"]] = cv2.imread(filepath)
+        return True
 
-    for img in optionalComparisonImages:
-        filename = (img["filename"] if "filename" in img else img["name"]) + ".png"
-        if not exists(imagesDir + filename):
-            if "for" in img:
-                for mode in img["for"]:
-                    supportedModes.pop(mode, None)
-        elif "category" in img:
-            if not img["category"] in comparisonImages:
-                comparisonImages[img["category"]] = {}
-            comparisonImages[img["category"]][img["name"]] = cv2.imread(
-                imagesDir + filename
-            )
-        else:
-            comparisonImages[img["name"]] = cv2.imread(imagesDir + filename)
+    if not load_images(requiredComparisonImages, comparisonImages):
+        return None
+    
+    load_images(optionalComparisonImages, comparisonImages, optional=True)
+    
+    if not load_images(requiredLocateImages, locateImages):
+        return None
+        
+    load_images(optionalLocateImages, locateImages, optional=True)
 
-    for img in requiredLocateImages:
-        filename = (img["filename"] if "filename" in img else img["name"]) + ".png"
-        if not exists(imagesDir + filename):
-            print(filename + " missing!")
-            return None
-        elif "category" in img:
-            if not img["category"] in locateImages:
-                locateImages[img["category"]] = {}
-            locateImages[img["category"]][img["name"]] = cv2.imread(
-                imagesDir + filename
-            )
-        else:
-            locateImages[img["name"]] = cv2.imread(imagesDir + filename)
-
-    for img in optionalLocateImages:
-        filename = (img["filename"] if "filename" in img else img["name"]) + ".png"
-        if not exists(imagesDir + filename):
-            if "for" in img:
-                for mode in img["for"]:
-                    supportedModes.pop(mode, None)
-        elif "category" in img:
-            if not img["category"] in locateImages:
-                locateImages[img["category"]] = {}
-            locateImages[img["category"]][img["name"]] = cv2.imread(
-                imagesDir + filename
-            )
-        else:
-            locateImages[img["name"]] = cv2.imread(imagesDir + filename)
-
-    locateImages["collection"] = {}
-    if exists(imagesDir + "collection_events"):
-        for filename in os.listdir(imagesDir + "collection_events"):
-            locateImages["collection"][filename.replace(".png", "")] = cv2.imread(
-                imagesDir + "collection_events/" + filename
-            )
+    collection_events_dir = imagesDir + "collection_events"
+    if exists(collection_events_dir):
+        locateImages["collection"] = {
+            filename.replace(".png", ""): cv2.imread(f"{collection_events_dir}/{filename}")
+            for filename in os.listdir(collection_events_dir)
+        }
+    else:
+        locateImages["collection"] = {}
 
     return {
         "comparisonImages": comparisonImages,
