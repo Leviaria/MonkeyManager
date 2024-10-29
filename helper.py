@@ -62,7 +62,7 @@ def userHasMonkeyKnowledge(name):
         monkeyKnowledgeEnabled
         and "monkey_knowledge" in userConfig
         and name in userConfig["monkey_knowledge"]
-        and userConfig["monkey_knowledge"][name] == True
+        and userConfig["monkey_knowledge"][name]
     )
 
 
