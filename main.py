@@ -4,6 +4,11 @@ import signal
 import sys
 import time
 
+import cv2
+import keyboard
+import pyautogui
+from loguru import logger
+
 from helper import *
 from monkeymanager.detectors.ocr import custom_ocr
 
@@ -14,7 +19,7 @@ menuChangeDelay = 1
 
 def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
     nativeResolution = (2560, 1440)
-    
+
     requiredComparisonImages = [
         {"category": "screens", "name": "startmenu"},
         {"category": "screens", "name": "map_selection"},
@@ -34,7 +39,7 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
         {"category": "game_state", "name": "game_playing_slow"},
         {"category": "game_state", "name": "game_playing_fast"},
     ]
-    
+
     optionalComparisonImages = [
         {
             "category": "screens",
@@ -42,12 +47,12 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
             "for": [Mode.CHASE_REWARDS.name],
         }
     ]
-    
+
     requiredLocateImages = [
         {"name": "remove_obstacle_confirm_button"},
         {"name": "button_home"},
     ]
-    
+
     optionalLocateImages = [
         {"name": "unknown_insta", "for": [Mode.CHASE_REWARDS.name]},
         {"name": "unknown_insta_mask", "for": [Mode.CHASE_REWARDS.name]},
@@ -58,13 +63,17 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
             "lives": (187, 32, 350, 84),
             "mana_lives": (89, 78, 185, 132),
             "money": (486, 25, 959, 90),
-            "round": (1912, 39, 2080, 95) if gamemode not in ["impoppable", "chimps"] else (1880, 39, 2080, 95),
+            "round": (
+                (1912, 39, 2080, 95)
+                if gamemode not in ["impoppable", "chimps"]
+                else (1880, 39, 2080, 95)
+            ),
         }
     }
 
     resolutionString = getResolutionString(resolution)
     segmentCoordinates = rawSegmentCoordinates.get(resolutionString, {})
-    
+
     if not segmentCoordinates:
         nativeCoords = rawSegmentCoordinates[getResolutionString(nativeResolution)]
         segmentCoordinates = {
@@ -87,7 +96,7 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
         for img in image_list:
             filename = f"{img.get('filename', img['name'])}.png"
             filepath = imagesDir + filename
-            
+
             if not exists(filepath):
                 if optional and "for" in img:
                     for mode in img["for"]:
@@ -96,7 +105,7 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
                     print(f"{filename} missing!")
                     return False
                 continue
-                
+
             category = img.get("category")
             if category:
                 target_dict.setdefault(category, {})[img["name"]] = cv2.imread(filepath)
@@ -106,18 +115,20 @@ def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
 
     if not load_images(requiredComparisonImages, comparisonImages):
         return None
-    
+
     load_images(optionalComparisonImages, comparisonImages, optional=True)
-    
+
     if not load_images(requiredLocateImages, locateImages):
         return None
-        
+
     load_images(optionalLocateImages, locateImages, optional=True)
 
     collection_events_dir = imagesDir + "collection_events"
     if exists(collection_events_dir):
         locateImages["collection"] = {
-            filename.replace(".png", ""): cv2.imread(f"{collection_events_dir}/{filename}")
+            filename.replace(".png", ""): cv2.imread(
+                f"{collection_events_dir}/{filename}"
+            )
             for filename in os.listdir(collection_events_dir)
         }
     else:
@@ -1918,7 +1929,7 @@ def main():
 
                 iterationBalances.append((currentValues["money"], thisIterationCost))
             else:
-                customPrint("task INGAME, but not in related screen!")
+                logger.info("Task INGAME, but not in related screen!")
                 state = State.GOTO_HOME
                 lastStateTransitionSuccessful = False
         else:
@@ -1926,7 +1937,7 @@ def main():
             lastStateTransitionSuccessful = False
 
         if state != lastState:
-            customPrint("new state " + state.name + "!")
+            logger.info(f"New state {state.name}!")
 
         lastScreen = screen
         lastState = state
