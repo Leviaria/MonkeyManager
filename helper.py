@@ -120,7 +120,7 @@ def getResolutionString(resolution=pyautogui.size()):
 
 def parseBTD6InstructionFileName(filename):
     matches = re.search(
-        "^(?:(?:own_|unvalidated_|unsuccessful_)?monkeymanager/maps\/)?(?P<map>\w+)#(?P<gamemode>\w+)#(?P<resolution>(?P<resolution_x>\d+)x(?P<resolution_y>\d+))(?:#(?P<comment>.+))?\.btd6$",
+        r"^(?:(?:own_|unvalidated_|unsuccessful_)?monkeymanager/maps/)?(?P<map>\w+)#(?P<gamemode>\w+)#(?P<resolution>(?P<resolution_x>\d+)x(?P<resolution_y>\d+))(?:#(?P<comment>.+))?\.btd6$",
         filename,
     )
     if not matches:
@@ -130,7 +130,7 @@ def parseBTD6InstructionFileName(filename):
     matches["noLL"] = False
     matches["noLLwMK"] = False
     for m in re.finditer(
-        "(?P<noMK>noMK(?:#|$))?(?:(?P<singleType>[a-z]+)Only(?:#|$))?(?P<noLL>noLL(?:#|$))?(?P<noLLwMK>noLLwMK(?:#|$))?(?P<gB>gB(?:#|$))?",
+        r"(?P<noMK>noMK(?:#|$))?(?:(?P<singleType>[a-z]+)Only(?:#|$))?(?P<noLL>noLL(?:#|$))?(?P<noLLwMK>noLLwMK(?:#|$))?(?P<gB>gB(?:#|$))?",
         matches["comment"] if "comment" in matches and matches["comment"] else "",
     ):
         if m.group("noMK"):
