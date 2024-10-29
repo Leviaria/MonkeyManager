@@ -251,11 +251,11 @@ def parseBTD6InstructionsFile(
     sandboxMode = False
 
     mapname = fileConfig["map"]
-    if not mapname in maps:
+    if mapname not in maps:
         print("unknown map: " + str(mapname))
         return None
     gamemode = gamemode if gamemode else fileConfig["gamemode"]
-    if not gamemode in gamemodes and not gamemode in sandboxGamemodes:
+    if gamemode not in gamemodes and gamemode not in sandboxGamemodes:
         print("unknown gamemode: " + str(gamemode))
         return None
     if gamemode in sandboxGamemodes:
@@ -692,7 +692,7 @@ def getHighestValuePlaythrough(
     highestValueNoDefeatsPlaythroughValue = 0
     highestValueNoDefeatsPlaythroughTime = 0
 
-    if not mapname in allAvailablePlaythroughs:
+    if mapname not in allAvailablePlaythroughs:
         return None
 
     for gamemode in allAvailablePlaythroughs[mapname]:
@@ -705,8 +705,8 @@ def getHighestValuePlaythrough(
                     highestValueNoDefeatsPlaythroughTime = averageTime
                 elif (
                     preferNoMK
-                    and highestValueNoDefeatsPlaythrough["fileConfig"]["noMK"] == False
-                    and playthrough["fileConfig"]["noMK"] == True
+                    and not highestValueNoDefeatsPlaythrough["fileConfig"]["noMK"]
+                    and playthrough["fileConfig"]["noMK"]
                 ):
                     highestValueNoDefeatsPlaythroughValue = gamemodes[gamemode]["value"]
                     highestValueNoDefeatsPlaythrough = playthrough
@@ -715,8 +715,8 @@ def getHighestValuePlaythrough(
                     (
                         not preferNoMK
                         or highestValueNoDefeatsPlaythrough["fileConfig"]["noMK"]
-                        == playthrough["fileConfig"]["noMK"]
-                        or playthrough["fileConfig"]["noMK"] == True
+                        is playthrough["fileConfig"]["noMK"]
+                        or playthrough["fileConfig"]["noMK"]
                     )
                     and gamemodes[gamemode]["value"]
                     == highestValueNoDefeatsPlaythroughValue
@@ -736,8 +736,8 @@ def getHighestValuePlaythrough(
                     highestValuePlaythroughTime = averageTime
                 elif (
                     preferNoMK
-                    and highestValuePlaythrough["fileConfig"]["noMK"] == False
-                    and playthrough["fileConfig"]["noMK"] == True
+                    and not highestValuePlaythrough["fileConfig"]["noMK"]
+                    and playthrough["fileConfig"]["noMK"]
                 ):
                     highestValuePlaythroughValue = gamemodes[gamemode]["value"]
                     highestValuePlaythrough = playthrough
@@ -746,8 +746,8 @@ def getHighestValuePlaythrough(
                     (
                         not preferNoMK
                         or highestValuePlaythrough["fileConfig"]["noMK"]
-                        == playthrough["fileConfig"]["noMK"]
-                        or playthrough["fileConfig"]["noMK"] == True
+                        is playthrough["fileConfig"]["noMK"]
+                        or playthrough["fileConfig"]["noMK"]
                     )
                     and gamemodes[gamemode]["value"] == highestValuePlaythroughValue
                     and averageTime != -1
@@ -767,16 +767,13 @@ def updatePlaythroughValidationStatus(
     playthroughFile, validationStatus, resolution=getResolutionString()
 ):
     global playthroughStats
-
-    if not playthroughFile in playthroughStats:
+    if playthroughFile not in playthroughStats:
         playthroughStats[playthroughFile] = {}
-    if not resolution in playthroughStats[playthroughFile]:
+    if resolution not in playthroughStats[playthroughFile]:
         playthroughStats[playthroughFile][resolution] = {"validation_result": False}
-
     playthroughStats[playthroughFile][resolution][
         "validation_result"
     ] = validationStatus
-
     fp = open("playthrough_stats.json", "w")
     fp.write(json.dumps(playthroughStats, indent=4))
     fp.close()
@@ -786,19 +783,17 @@ def updateStatsFile(
     playthroughFile, thisPlaythroughStats, resolution=getResolutionString()
 ):
     global playthroughStats
-
-    if not playthroughFile in playthroughStats:
+    if playthroughFile not in playthroughStats:
         playthroughStats[playthroughFile] = {}
-    if not resolution in playthroughStats[playthroughFile]:
+    if resolution not in playthroughStats[playthroughFile]:
         playthroughStats[playthroughFile][resolution] = {"validation_result": False}
     if (
-        not thisPlaythroughStats["gamemode"]
-        in playthroughStats[playthroughFile][resolution]
+        thisPlaythroughStats["gamemode"]
+        not in playthroughStats[playthroughFile][resolution]
     ):
         playthroughStats[playthroughFile][resolution][
             thisPlaythroughStats["gamemode"]
         ] = {"attempts": 0, "wins": 0, "win_times": []}
-
     if thisPlaythroughStats["result"] == PlaythroughResult.WIN:
         playthroughStats[playthroughFile][resolution][thisPlaythroughStats["gamemode"]][
             "attempts"
@@ -821,7 +816,6 @@ def updateStatsFile(
         playthroughStats[playthroughFile][resolution][thisPlaythroughStats["gamemode"]][
             "attempts"
         ] += 1
-
     fp = open("playthrough_stats.json", "w")
     fp.write(json.dumps(playthroughStats, indent=4))
     fp.close()
@@ -947,16 +941,16 @@ def getMedalStatus(mapname, gamemode):
     return (
         mapname in userConfig["medals"]
         and gamemode in userConfig["medals"][mapname]
-        and userConfig["medals"][mapname][gamemode] == True
+        and userConfig["medals"][mapname][gamemode]
     )
 
 
 def updateMedalStatus(mapname, gamemode, status=True):
     if getMedalStatus(mapname, gamemode) == status:
         return
-    if not mapname in userConfig["medals"]:
+    if mapname not in userConfig["medals"]:
         userConfig["medals"][mapname] = {}
-    if not gamemode in userConfig["medals"][mapname]:
+    if gamemode not in userConfig["medals"][mapname]:
         userConfig["medals"][mapname][gamemode] = False
     userConfig["medals"][mapname][gamemode] = status
     fp = open("userconfig.json", "w")
@@ -965,7 +959,7 @@ def updateMedalStatus(mapname, gamemode, status=True):
 
 
 def canUserAccessGamemode(mapname, gamemode):
-    if not mapname in userConfig["medals"]:
+    if mapname not in userConfig["medals"]:
         return False
     if gamemode in ["easy", "medium", "hard"]:
         return True
@@ -998,7 +992,7 @@ def canUserAccessGamemode(mapname, gamemode):
 
 
 def getAvailableSandbox(mapname, restricted_to=None):
-    for gamemode in restricted_to if not restricted_to is None else sandboxGamemodes:
+    for gamemode in restricted_to if restricted_to is not None else sandboxGamemodes:
         if canUserAccessGamemode(mapname, gamemode):
             return gamemode
     return None
@@ -1017,7 +1011,7 @@ def getAllAvailablePlaythroughs(additionalDirs=[], considerUserConfig=False):
             {"filename": filename, "fileConfig": fileConfig}
         ):
             continue
-        if not fileConfig["map"] in playthroughs:
+        if fileConfig["map"] not in playthroughs:
             playthroughs[fileConfig["map"]] = {}
         compatibleGamemodes = listBTD6InstructionsFileCompatability(filename)
         for gamemode in compatibleGamemodes:
@@ -1025,7 +1019,7 @@ def getAllAvailablePlaythroughs(additionalDirs=[], considerUserConfig=False):
                 fileConfig["map"], gamemode
             ):
                 continue
-            if not gamemode in playthroughs[fileConfig["map"]]:
+            if gamemode not in playthroughs[fileConfig["map"]]:
                 playthroughs[fileConfig["map"]][gamemode] = []
             playthroughs[fileConfig["map"]][gamemode].append(
                 {
@@ -1059,14 +1053,11 @@ def filterAllAvailablePlaythroughs(
             if gamemodeRestriction and gamemode != gamemodeRestriction:
                 continue
             for playthrough in playthroughs[mapname][gamemode]:
-                if (
-                    playthrough["fileConfig"]["noMK"] == False
-                    and monkeyKnowledgeEnabled == False
-                ):
+                if not playthrough["fileConfig"]["noMK"] and not monkeyKnowledgeEnabled:
                     continue
                 if heroWhitelist:
                     mapConfig = parseBTD6InstructionsFile(playthrough["filename"])
-                    if "hero" in mapConfig and not mapConfig["hero"] in heroWhitelist:
+                    if "hero" in mapConfig and mapConfig["hero"] not in heroWhitelist:
                         continue
                 if requiredFlags and not all(
                     [x in playthrough["fileConfig"] for x in requiredFlags]
@@ -1081,15 +1072,16 @@ def filterAllAvailablePlaythroughs(
                             handlePlaythroughValidation
                             == ValidatedPlaythroughs.EXCLUDE_NON_VALIDATED
                             and (
-                                not playthrough["filename"] in playthroughStats
-                                or not resolution
-                                in playthroughStats[playthrough["filename"]]
-                                or not "validation_result"
-                                in playthroughStats[playthrough["filename"]][resolution]
-                                or playthroughStats[playthrough["filename"]][
+                                playthrough["filename"] not in playthroughStats
+                                or resolution
+                                not in playthroughStats[playthrough["filename"]]
+                                or "validation_result"
+                                not in playthroughStats[playthrough["filename"]][
+                                    resolution
+                                ]
+                                or not playthroughStats[playthrough["filename"]][
                                     resolution
                                 ]["validation_result"]
-                                == False
                             )
                         )
                         or (
@@ -1104,15 +1096,14 @@ def filterAllAvailablePlaythroughs(
                                 and playthroughStats[playthrough["filename"]][
                                     resolution
                                 ]["validation_result"]
-                                == True
                             )
                         )
                     )
                 ):
                     continue
-                if not mapname in filteredPlaythroughs:
+                if mapname not in filteredPlaythroughs:
                     filteredPlaythroughs[mapname] = {}
-                if not gamemode in filteredPlaythroughs[mapname]:
+                if gamemode not in filteredPlaythroughs[mapname]:
                     filteredPlaythroughs[mapname][gamemode] = []
                 filteredPlaythroughs[mapname][gamemode].append(playthrough)
 
@@ -1174,7 +1165,7 @@ def getPlaythroughXP(gamemode, mapcategory):
 
 
 def getPlaythroughMonkeyMoney(gamemode, mapcategory):
-    if not gamemode in gamemodes:
+    if gamemode not in gamemodes:
         return 0
 
     replayMonkeyMoney = {
@@ -1189,7 +1180,7 @@ def getPlaythroughMonkeyMoney(gamemode, mapcategory):
         },
     }
 
-    if not mapcategory in replayMonkeyMoney["easy"]:
+    if mapcategory not in replayMonkeyMoney["easy"]:
         return 0
 
     return replayMonkeyMoney[gamemodes[gamemode]["cash_group"]][mapcategory]
@@ -1243,7 +1234,7 @@ def findImageInImage(img, subImg):
 
 
 def findMapForPxPos(category, page, pxpos):
-    if not category in mapsByPos or not page in mapsByPos[category]:
+    if category not in mapsByPos or page not in mapsByPos[category]:
         return None
     bestFind = None
     bestFindDist = 100000
@@ -1296,7 +1287,7 @@ def getMonkeyKnowledgeStatus():
 
 
 def keyToAHK(x):
-    return "{sc" + hex(x).replace("0x", "") + "}" if type(x) == type(int()) else x
+    return "{sc" + hex(x).replace("0x", "") + "}" if isinstance(x, int) else x
 
 
 def sendKey(key):
@@ -1305,7 +1296,7 @@ def sendKey(key):
 
 def mapnameToKeyname(mapname):
     return (
-        "".join([(x if not x in ["'", "#"] else "") for x in mapname])
+        "".join([(x if x not in ["'", "#"] else "") for x in mapname])
         .replace(" ", "_")
         .lower()
     )
@@ -1331,7 +1322,7 @@ def mapsByCategoryToMaplist(mapsByCategory, maps):
 
 
 def upgradeRequiresConfirmation(monkey, path):
-    if not "upgrade_confirmation" in towers["monkeys"][monkey["type"]]:
+    if "upgrade_confirmation" not in towers["monkeys"][monkey["type"]]:
         return False
     if monkey["upgrades"][path] - 1 == -1:
         return False
