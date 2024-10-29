@@ -1,0 +1,37 @@
+place quincy hero0 at 543, 298
+place boomerang boomerang0 at 681, 459
+upgrade boomerang0 path 2
+upgrade boomerang0 path 2
+upgrade boomerang0 path 0
+upgrade boomerang0 path 0
+upgrade boomerang0 path 0
+upgrade boomerang0 path 0
+place village village0 at 689, 305
+upgrade village0 path 1
+upgrade village0 path 1
+place sniper sniper0 at 704, 624
+upgrade sniper0 path 0
+upgrade sniper0 path 0
+upgrade sniper0 path 0
+upgrade sniper0 path 2
+upgrade sniper0 path 2
+retarget sniper0
+retarget sniper0
+retarget sniper0
+upgrade boomerang0 path 0
+upgrade village0 path 0
+upgrade village0 path 0
+upgrade village0 path 0
+place glue glue0 at 385, 344
+retarget glue0
+retarget glue0
+retarget glue0
+upgrade glue0 path 0
+upgrade glue0 path 0
+upgrade glue0 path 0
+upgrade glue0 path 1
+upgrade glue0 path 1
+upgrade village0 path 0
+upgrade glue0 path 0
+upgrade sniper0 path 0
+upgrade glue0 path 0
