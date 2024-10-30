@@ -240,7 +240,9 @@ def writeBTD6InstructionsFile(
     fp.close()
 
 
-def parseBTD6InstructionsFile(filename, targetResolution=pyautogui.size(), gamemode=None):
+def parseBTD6InstructionsFile(
+    filename, targetResolution=pyautogui.size(), gamemode=None
+):
     fileConfig = parseBTD6InstructionFileName(filename)
     if not fileConfig:
         return None
@@ -265,7 +267,9 @@ def parseBTD6InstructionsFile(filename, targetResolution=pyautogui.size(), gamem
         rawInputFile = fp.read()
 
     if not targetResolution and fileConfig["resolution"] != getResolutionString():
-        customPrint("tried parsing playthrough for non native resolution with rescaling disabled!")
+        customPrint(
+            "tried parsing playthrough for non native resolution with rescaling disabled!"
+        )
         return None
     elif fileConfig["resolution"] != getResolutionString(targetResolution):
         rawInputFile = convertPositionsInString(
@@ -276,7 +280,9 @@ def parseBTD6InstructionsFile(filename, targetResolution=pyautogui.size(), gamem
 
     configLines = rawInputFile.splitlines()
     monkeys = {}
-    newMapConfig = setup_initial_map_config(mapname, gamemode, sandboxMode, filename, fileConfig)
+    newMapConfig = setup_initial_map_config(
+        mapname, gamemode, sandboxMode, filename, fileConfig
+    )
 
     if gamemode in {"deflation", "half_cash", "impoppable", "chimps"} or sandboxMode:
         add_gamemode_deflation_step(newMapConfig)
@@ -318,11 +324,13 @@ def setup_initial_map_config(mapname, gamemode, sandboxMode, filename, fileConfi
 
 
 def add_gamemode_deflation_step(newMapConfig):
-    newMapConfig["steps"].append({
-        "action": "click",
-        "pos": imageAreas["click"]["gamemode_deflation_message_confirmation"],
-        "cost": 0,
-    })
+    newMapConfig["steps"].append(
+        {
+            "action": "click",
+            "pos": imageAreas["click"]["gamemode_deflation_message_confirmation"],
+            "cost": 0,
+        }
+    )
     newMapConfig["extrainstructions"] = 1
 
 
@@ -357,23 +365,31 @@ def handle_place_action(matches, filename, newMapConfig, gamemode, monkeys):
     elif matches.group("type") in towers["heros"]:
         newStep, newMapConfig = handle_place_hero(matches, newMapConfig, gamemode)
     else:
-        print(f"{filename}: monkey/hero {name} has unknown type: {matches.group('type')}! skipping!")
+        print(
+            f"{filename}: monkey/hero {name} has unknown type: {matches.group('type')}! skipping!"
+        )
         return []
     return [newStep]
 
 
 def handle_upgrade_action(matches, filename, monkeys, newMapConfig, gamemode):
     newSteps = []
-    newStep, monkeys = handle_upgrade(matches, filename, monkeys, newMapConfig, gamemode)
+    newStep, monkeys = handle_upgrade(
+        matches, filename, monkeys, newMapConfig, gamemode
+    )
     if newStep:
         newSteps.append(newStep)
-        if upgradeRequiresConfirmation(monkeys[matches.group("name")], int(matches.group("path"))):
-            newSteps.append({
-                "action": "click",
-                "name": matches.group("name"),
-                "pos": imageAreas["click"]["paragon_message_confirmation"],
-                "cost": 0,
-            })
+        if upgradeRequiresConfirmation(
+            monkeys[matches.group("name")], int(matches.group("path"))
+        ):
+            newSteps.append(
+                {
+                    "action": "click",
+                    "name": matches.group("name"),
+                    "pos": imageAreas["click"]["paragon_message_confirmation"],
+                    "cost": 0,
+                }
+            )
     return newSteps
 
 
@@ -481,13 +497,19 @@ def handle_upgrade(matches, filename, monkeys, newMapConfig, gamemode):
     monkeyUpgrades = monkeys[name]["upgrades"]
     path = int(matches.group("path"))
     monkeyUpgrades[path] += 1
-    if sum(x > 2 for x in monkeyUpgrades) > 1 or sum(x > 0 for x in monkeyUpgrades) > 2 or monkeyUpgrades[path] > 5:
+    if (
+        sum(x > 2 for x in monkeyUpgrades) > 1
+        or sum(x > 0 for x in monkeyUpgrades) > 2
+        or monkeyUpgrades[path] > 5
+    ):
         print(f"{filename}: invalid upgrade path for monkey {name}! skipping!")
         monkeyUpgrades[path] -= 1
         return None, monkeys
 
     cost = adjustPrice(
-        towers["monkeys"][monkeys[name]["type"]]["upgrades"][path][monkeyUpgrades[path] - 1],
+        towers["monkeys"][monkeys[name]["type"]]["upgrades"][path][
+            monkeyUpgrades[path] - 1
+        ],
         newMapConfig["difficulty"],
         gamemode,
         {"action": "upgrade", "path": path},
