@@ -1,15 +1,33 @@
 import copy
+import json
+import os
 import random
+import re
 import signal
 import sys
 import time
+from os.path import exists
 
 import cv2
 import keyboard
 import pyautogui
 from loguru import logger
 
-from helper import *
+from helper import (AHK, Enum, PlaythroughResult, ValidatedPlaythroughs,
+                    adjustPrice, ahk, allPlaythroughsToList, categoryPages,
+                    convertPositionsInString, customPrint, cutImage,
+                    filterAllAvailablePlaythroughs, findImageInImage,
+                    findMapForPxPos, gamemodes, getAllAvailablePlaythroughs,
+                    getAvailableSandbox, getHighestValuePlaythrough,
+                    getMonkeyKnowledgeStatus, getMonkeySellValue,
+                    getResolutionString, imageAreas, isBTD6Window, keybinds,
+                    mapsByCategory, np, parseBTD6InstructionFileName,
+                    parseBTD6InstructionsFile, sendKey,
+                    setMonkeyKnowledgeStatus,
+                    sortPlaythroughsByMonkeyMoneyGain,
+                    sortPlaythroughsByXPGain, towers, tupleToStr,
+                    updateMedalStatus, updatePlaythroughValidationStatus,
+                    updateStatsFile, upgradeRequiresConfirmation)
 from monkeymanager.detectors.ocr import custom_ocr
 
 smallActionDelay = 0.05
@@ -493,7 +511,7 @@ def main():
                 requiredFlags=["gB"],
             )
             customPrint(
-                f"Mode: playing games with golden bloons using special playthroughs"
+                "Mode: playing games with golden bloons using special playthroughs"
                 + (f" on {gamemodeRestriction}" if gamemodeRestriction else "")
                 + (f" in {categoryRestriction} category" if categoryRestriction else "")
                 + "!"
@@ -693,10 +711,10 @@ def main():
         costs = {"monkeys": {}}
 
         baseMapConfig = {
-            "category": maps[selectedMap]["category"],
+            "category": None,
             "map": selectedMap,
-            "page": maps[selectedMap]["page"],
-            "pos": maps[selectedMap]["pos"],
+            "page": None,
+            "pos": None,
             "difficulty": "medium",
             "gamemode": "medium_sandbox",
             "steps": [],
@@ -828,7 +846,7 @@ def main():
         customPrint("invalid arguments! exiting!")
         return
 
-    if not mode.name in supportedModes:
+    if mode.name not in supportedModes:
         customPrint("mode not supported due to missing images!")
         return
 
@@ -889,7 +907,6 @@ def main():
 
     lastIterationBalance = -1
     lastIterationRound = -1
-    lastIterationScreenshotAreas = []
     lastIterationCost = 0
     iterationBalances = []
     thisIterationAction = None
@@ -1023,7 +1040,7 @@ def main():
                 continue
 
             if mode == Mode.VALIDATE_PLAYTHROUGHS:
-                if validationResult != None:
+                if validationResult is not None:
                     customPrint(
                         "validation result: playthrough "
                         + lastPlaythrough["filename"]
@@ -1145,7 +1162,7 @@ def main():
                     fp.write(json.dumps(towers, indent=4))
                     fp.close()
                 else:
-                    print(f'no price changes in comparison to "towers.json" detected!')
+                    print('no price changes in comparison to "towers.json" detected!')
 
                 return
             elif repeatObjectives or gamesPlayed == 0:
@@ -1920,7 +1937,6 @@ def main():
                     elif gameState == "game_paused":
                         sendKey(keybinds["others"]["play"])
 
-                lastIterationScreenshotAreas = images
                 lastIterationBalance = currentValues["money"]
                 lastIterationCost = thisIterationCost
                 lastIterationAction = thisIterationAction
