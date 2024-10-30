@@ -34,6 +34,19 @@ smallActionDelay = 0.05
 actionDelay = 0.2
 menuChangeDelay = 1
 
+log_directory = "monkeymanager/logs"
+
+os.makedirs(log_directory, exist_ok=True)
+
+LOG_LEVEL = "INFO"
+logger.remove()
+logger.add(sys.stderr, level=LOG_LEVEL)
+logger.add(f"{log_directory}/file_{{time}}.log", rotation="1 day", retention="7 days", level=LOG_LEVEL)
+
+
+logger.info("Init: Stats logging enabled.")
+logger.info("Init: Monkey knowledge enabled, adjusting prices.")
+
 
 def getResolutionDependentData(resolution=pyautogui.size(), gamemode=""):
     nativeResolution = (2560, 1440)
@@ -237,17 +250,21 @@ def setExitAfterGame():
     activeWindow = ahk.get_active_window()
     if not activeWindow or not isBTD6Window(activeWindow.title):
         return
-    customPrint("script will stop after finishing the current game!")
+    logger.info("Action: Script will stop after current game.")
     exitAfterGame = True
 
 
 def signalHandler(signum, frame):
-    customPrint("received SIGINT! exiting!")
+    logger.info("Signal: Received SIGINT, exiting.")
     sys.exit(0)
 
 
 def main():
     signal.signal(signal.SIGINT, signalHandler)
+
+    # Example of setting up initial log messages
+    logger.info("Init: Stats logging enabled.")
+    logger.info("Init: Monkey knowledge enabled, adjusting prices.")
 
     data = getResolutionDependentData()
 
@@ -289,30 +306,26 @@ def main():
     parsedArguments = []
 
     if len(np.where(argv == "-ns")[0]):
-        customPrint("stats logging disabled!")
+        logger.info("stats logging disabled!")
         parsedArguments.append("-ns")
         logStats = False
     else:
-        customPrint("stats logging enabled!")
+        logger.info("stats logging enabled!")
     if len(np.where(argv == "-r")[0]):
-        customPrint("repeating objective indefinitely! cancel with ctrl + c!")
+        logger.info("repeating objective indefinitely! cancel with ctrl + c!")
         parsedArguments.append("-r")
         repeatObjectives = True
 
     if len(np.where(argv == "-mk")[0]):
-        customPrint(
-            "including playthroughs with monkey knowledge enabled and adjusting prices according to userconfig.json!"
-        )
+        logger.info("including playthroughs with monkey knowledge enabled and adjusting prices according to userconfig.json!")
         parsedArguments.append("-mk")
         setMonkeyKnowledgeStatus(True)
     elif len(np.where(argv == "-nomk")[0]):
-        customPrint("ignoring playthroughs with monkey knowledge enabled!")
+        logger.info("ignoring playthroughs with monkey knowledge enabled!")
         parsedArguments.append("-nomk")
         setMonkeyKnowledgeStatus(False)
     else:
-        customPrint(
-            '"-mk" (for monkey knowledge enabled) or "-nomk" (for monkey knowledge disabled) must be specified! exiting!'
-        )
+        logger.info('"-mk" (for monkey knowledge enabled) or "-nomk" (for monkey knowledge disabled) must be specified! exiting!')
         return
 
     if len(np.where(argv == "-l")[0]):
@@ -426,11 +439,8 @@ def main():
             ):
                 customPrint(
                     "instruction offset > last instruction ("
-                    + (
-                        str(instructionLast)
-                        if instructionLast != -1
-                        else str(len(mapConfig["steps"]))
-                    )
+                    + str(instructionLast if instructionLast != -1 
+                        else str(len(mapConfig["steps"])))
                     + ")"
                 )
                 return
@@ -843,11 +853,11 @@ def main():
         mode = Mode.VALIDATE_COSTS
 
     if mode == Mode.ERROR:
-        customPrint("invalid arguments! exiting!")
+        logger.info("invalid arguments! exiting!")
         return
 
     if mode.name not in supportedModes:
-        customPrint("mode not supported due to missing images!")
+        logger.info("mode not supported due to missing images!")
         return
 
     parsedArguments.append(argv[0])
@@ -871,9 +881,9 @@ def main():
 
     if listAvailablePlaythroughs:
         if usesAllAvailablePlaythroughsList:
-            customPrint(str(len(allAvailablePlaythroughsList)) + " playthroughs found:")
+            logger.info(str(len(allAvailablePlaythroughsList)) + " playthroughs found:")
             for playthrough in allAvailablePlaythroughsList:
-                customPrint(
+                logger.info(
                     playthrough["filename"]
                     + ": "
                     + playthrough["fileConfig"]["map"]
@@ -888,11 +898,11 @@ def main():
                     )
                 )
         else:
-            customPrint("Mode doesn't qualify for listing all available playthroughs")
+            logger.info("Mode doesn't qualify for listing all available playthroughs")
         return
 
     if usesAllAvailablePlaythroughsList and len(allAvailablePlaythroughsList) == 0:
-        customPrint("no playthroughs matching requirements found!")
+        logger.info("no playthroughs matching requirements found!")
 
     keyboard.add_hotkey("ctrl+space", setExitAfterGame)
 
@@ -1026,14 +1036,14 @@ def main():
                     screen = screenCfg[0]
 
         if screen != lastScreen:
-            customPrint("screen " + screen.name + "!")
+            logger.info(f"Screen: Changed to {screen.name.capitalize()}")
 
         if screen == Screen.BTD6_UNFOCUSED:
             pass
         elif keyboard.is_pressed("ctrl"):
             pass
         elif state == State.MANAGE_OBJECTIVES:
-            customPrint("entered objective management!")
+            logger.info("entered objective management!")
 
             if exitAfterGame:
                 state = State.EXIT
@@ -1041,7 +1051,7 @@ def main():
 
             if mode == Mode.VALIDATE_PLAYTHROUGHS:
                 if validationResult is not None:
-                    customPrint(
+                    logger.info(
                         "validation result: playthrough "
                         + lastPlaythrough["filename"]
                         + " is "
@@ -1053,7 +1063,7 @@ def main():
                     )
                 if len(allAvailablePlaythroughsList):
                     playthrough = allAvailablePlaythroughsList.pop(0)
-                    customPrint(
+                    logger.info(
                         "validation playthrough chosen: "
                         + playthrough["fileConfig"]["map"]
                         + " on "
@@ -1089,7 +1099,7 @@ def main():
                         validationResult = True
                         lastPlaythrough = playthrough
                     else:
-                        customPrint(
+                        logger.info(
                             "missing sandbox access for "
                             + playthrough["fileConfig"]["map"]
                         )
@@ -1154,7 +1164,7 @@ def main():
                             changes += 1
 
                 if changes:
-                    print(f'updating "towers.json" with {changes} changes!')
+                    logger.info(f'updating "towers.json" with {changes} changes!')
                     fp = open("towers_backup.json", "w")
                     fp.write(json.dumps(oldTowers, indent=4))
                     fp.close()
@@ -1162,7 +1172,7 @@ def main():
                     fp.write(json.dumps(towers, indent=4))
                     fp.close()
                 else:
-                    print('no price changes in comparison to "towers.json" detected!')
+                    logger.info('no price changes in comparison to "towers.json" detected!')
 
                 return
             elif repeatObjectives or gamesPlayed == 0:
@@ -1175,7 +1185,7 @@ def main():
                 ):
                     objectives = []
                     playthrough = random.choice(allAvailablePlaythroughsList)
-                    customPrint(
+                    logger.info(
                         "random playthrough chosen: "
                         + playthrough["fileConfig"]["map"]
                         + " on "
@@ -1208,7 +1218,7 @@ def main():
                     objectives = []
                     if increasedRewardsPlaythrough:
                         playthrough = increasedRewardsPlaythrough
-                        customPrint(
+                        logger.info(
                             "highest reward playthrough chosen: "
                             + playthrough["fileConfig"]["map"]
                             + " on "
@@ -1259,11 +1269,11 @@ def main():
             lastStateTransitionSuccessful = True
             objectiveFailed = False
         elif state == State.UNDEFINED:
-            customPrint("entered state management!")
+            logger.info("entered state management!")
             if exitAfterGame:
                 state = State.EXIT
             if objectiveFailed:
-                customPrint(
+                logger.info(
                     "objective failed on step "
                     + objectives[0]["type"].name
                     + "(screen "
@@ -1289,11 +1299,11 @@ def main():
         elif state == State.IDLE:
             pass
         elif state == State.EXIT:
-            customPrint("goal EXIT! exiting!")
+            logger.info("goal EXIT! exiting!")
             return
         elif state == State.GOTO_HOME:
             if screen == Screen.STARTMENU:
-                customPrint("goal GOTO_HOME fullfilled!")
+                logger.info("goal GOTO_HOME fullfilled!")
                 state = State.UNDEFINED
             elif screen == Screen.UNKNOWN:
                 if lastScreen == Screen.UNKNOWN and unknownScreenHasWaited:
@@ -1405,8 +1415,8 @@ def main():
                     imageAreas["click"]["gamemode_apopalypse_message_confirmation"]
                 )
             elif screen == Screen.INGAME:
-                customPrint("goal GOTO_INGAME fullfilled!")
-                customPrint(
+                logger.info("goal GOTO_INGAME fullfilled!")
+                logger.info(
                     "game: " + mapConfig["map"] + " - " + mapConfig["difficulty"]
                 )
                 iterationBalances = []
@@ -1423,7 +1433,7 @@ def main():
             elif screen == Screen.UNKNOWN:
                 pass
             else:
-                customPrint("task GOTO_INGAME, but not in startmenu!")
+                logger.info("task GOTO_INGAME, but not in startmenu!")
                 state = State.GOTO_HOME
                 lastStateTransitionSuccessful = False
         elif state == State.SELECT_HERO:
@@ -1439,13 +1449,13 @@ def main():
                 pyautogui.click(
                     imageAreas["click"]["screen_hero_selection_select_hero"]
                 )
-                customPrint("goal SELECT_HERO " + mapConfig["hero"] + " fullfilled!")
+                logger.info("goal SELECT_HERO " + mapConfig["hero"] + " fullfilled!")
                 lastHeroSelected = mapConfig["hero"]
                 state = State.UNDEFINED
             elif screen == Screen.UNKNOWN:
                 pass
             else:
-                customPrint("task SELECT_HERO, but not in startmenu!")
+                logger.info("task SELECT_HERO, but not in startmenu!")
                 state = State.GOTO_HOME
                 lastStateTransitionSuccessful = False
         elif state == State.FIND_HARDEST_INCREASED_REWARDS_MAP:
@@ -1486,14 +1496,14 @@ def main():
                             )
                             break
                     if not mapname:
-                        customPrint("no maps with increased rewards found! exiting!")
+                        logger.info("no maps with increased rewards found! exiting!")
                         return
-                    customPrint("best map: " + mapname)
+                    logger.info("best map: " + mapname)
                     increasedRewardsPlaythrough = getHighestValuePlaythrough(
                         allAvailablePlaythroughs, mapname, playthroughLog
                     )
                     if not increasedRewardsPlaythrough:
-                        customPrint("no playthroughs for map found! exiting!")
+                        logger.info("no playthroughs for map found! exiting!")
                         return
                 else:
                     iTmp = 0
@@ -1530,30 +1540,30 @@ def main():
                                 mapname = findMapForPxPos(category, page, result[1])
                                 break
                         if not mapname:
-                            customPrint(
+                            logger.info(
                                 "no maps with increased rewards found! exiting!"
                             )
                             return
-                        customPrint("best map in " + category + ": " + mapname)
+                        logger.info("best map in " + category + ": " + mapname)
                         increasedRewardsPlaythrough = getHighestValuePlaythrough(
                             allAvailablePlaythroughs, mapname, playthroughLog
                         )
                         if increasedRewardsPlaythrough:
                             break
                         else:
-                            customPrint(
+                            logger.info(
                                 "no playthroughs for map found! searching lower map tiers!"
                             )
                         iTmp += 1
 
                     if not increasedRewardsPlaythrough:
-                        customPrint("no available playthrough found! exiting!")
+                        logger.info("no available playthrough found! exiting!")
                         return
                 state = State.UNDEFINED
             elif screen == Screen.UNKNOWN:
                 pass
             else:
-                customPrint(
+                logger.info(
                     "task FIND_HARDEST_INCREASED_REWARDS_MAP, but not in startmenu!"
                 )
                 state = State.GOTO_HOME
@@ -1603,6 +1613,7 @@ def main():
                 if not isContinue:
                     updateMedalStatus(mapConfig["map"], mapConfig["gamemode"])
 
+                logger.info("Objective: Victory completed.")
                 state = State.UNDEFINED
             elif screen == Screen.DEFEAT:
                 if logStats:
@@ -1626,16 +1637,15 @@ def main():
                     "defeats"
                 ] += 1
 
+                logger.warning("Objective: Defeat recorded.")
                 state = State.UNDEFINED
             elif screen == Screen.INGAME:
                 if lastScreen != screen and logStats:
                     lastPlaythroughStats["time"].append(("start", time.time()))
 
                 images = [
-                    screenshot[
-                        segmentCoordinates[segment][1] : segmentCoordinates[segment][3],
-                        segmentCoordinates[segment][0] : segmentCoordinates[segment][2],
-                    ]
+                    screenshot[segmentCoordinates[segment][1]:segmentCoordinates[segment][3],
+                               segmentCoordinates[segment][0]:segmentCoordinates[segment][2]]
                     for segment in segmentCoordinates
                 ]
 
@@ -1653,43 +1663,14 @@ def main():
 
                 if len(mapConfig["steps"]):
                     if mapConfig["steps"][0]["action"] == "sell":
-                        customPrint(
-                            "detected money: "
-                            + str(currentValues["money"])
-                            + ", required: "
-                            + str(
-                                getNextNonSellAction(mapConfig["steps"])["cost"]
-                                - sumAdjacentSells(mapConfig["steps"])
-                            )
-                            + " ("
-                            + str(getNextNonSellAction(mapConfig["steps"])["cost"])
-                            + " - "
-                            + str(sumAdjacentSells(mapConfig["steps"]))
-                            + ")"
-                            + "          ",
-                            end="",
-                            rewriteLine=True,
-                        )
-                    if mapConfig["steps"][0]["action"] == "await_round":
-                        customPrint(
-                            "detected round: "
-                            + str(currentValues["round"])
-                            + ", awaiting: "
-                            + str(mapConfig["steps"][0]["round"])
-                            + "          ",
-                            end="",
-                            rewriteLine=True,
-                        )
+                        required_money = getNextNonSellAction(mapConfig['steps'])['cost'] - sumAdjacentSells(mapConfig['steps'])
+                        logger.debug(f"Money: {currentValues['money']}, required: {required_money}")
+                    elif mapConfig["steps"][0]["action"] == "await_round":
+                        logger.debug(f"Round: {currentValues['round']}, awaiting: {mapConfig['steps'][0]['round']}")
                     else:
-                        customPrint(
-                            "detected money: "
-                            + str(currentValues["money"])
-                            + ", required: "
-                            + str(mapConfig["steps"][0]["cost"])
-                            + "          ",
-                            end="",
-                            rewriteLine=True,
-                        )
+                        logger.debug(f"Money: {currentValues['money']}, required: {mapConfig['steps'][0]['cost']}")
+
+                logger.debug(f"Iteration: Money {currentValues['money']}, balance {lastIterationBalance}, cost {lastIterationCost}")
 
                 if mode == Mode.VALIDATE_PLAYTHROUGHS:
                     if (
@@ -1698,13 +1679,13 @@ def main():
                         != lastIterationBalance - lastIterationCost
                     ):
                         if currentValues["money"] == lastIterationBalance:
-                            customPrint(
+                            logger.info(
                                 "action: " + str(lastIterationAction) + " failed!"
                             )
                             validationResult = False
                             mapConfig["steps"] = []
                         else:
-                            customPrint(
+                            logger.info(
                                 "pricing error! expected cost: "
                                 + str(lastIterationCost)
                                 + ", detected cost: "
@@ -1743,7 +1724,7 @@ def main():
                     and len(mapConfig["steps"])
                     and mapConfig["steps"][0]["action"] == "await_round"
                 ):
-                    customPrint(
+                    logger.info(
                         "recognition error. money: "
                         + str(currentValues["money"])
                         + ", round: "
@@ -1754,7 +1735,7 @@ def main():
                     and lastIterationBalance - lastIterationCost
                     > currentValues["money"]
                 ):
-                    customPrint(
+                    logger.info(
                         "potential cash recognition error: "
                         + str(lastIterationBalance)
                         + " - "
@@ -1772,7 +1753,7 @@ def main():
                     and len(mapConfig["steps"])
                     and mapConfig["steps"][0]["action"] == "await_round"
                 ):
-                    customPrint(
+                    logger.info(
                         "potential round recognition error: "
                         + str(lastIterationRound)
                         + " -> "
@@ -1808,7 +1789,7 @@ def main():
                     thisIterationAction = action
                     if action["action"] != "sell" and action["action"] != "await_round":
                         thisIterationCost = action["cost"]
-                    customPrint("performing action: " + str(action))
+                    logger.info("performing action: " + str(action))
                     if action["action"] == "place":
                         pyautogui.moveTo(action["pos"])
                         time.sleep(actionDelay)
@@ -1853,7 +1834,7 @@ def main():
                                 )
                             ):
                                 action = mapConfig["steps"].pop(0)
-                                customPrint("+" + action["action"])
+                                logger.info("+" + action["action"])
                             else:
                                 action = None
                         action = actionTmp
@@ -1864,7 +1845,7 @@ def main():
                         time.sleep(actionDelay)
                         sendKey(action["key"])
                     elif action["action"] == "remove":
-                        customPrint(
+                        logger.info(
                             "removing obstacle at "
                             + tupleToStr(action["pos"])
                             + " for "
@@ -1945,15 +1926,16 @@ def main():
 
                 iterationBalances.append((currentValues["money"], thisIterationCost))
             else:
-                logger.info("Task INGAME, but not in related screen!")
+                logger.info("Task: Ingame, returning to home.")
                 state = State.GOTO_HOME
                 lastStateTransitionSuccessful = False
         else:
+            logger.warning("State: Undefined, transitioning to default.")
             state = State.UNDEFINED
             lastStateTransitionSuccessful = False
 
         if state != lastState:
-            logger.info(f"New state {state.name}!")
+            logger.info(f"State: {lastState.name.capitalize()} -> {state.name.capitalize()}")
 
         lastScreen = screen
         lastState = state
