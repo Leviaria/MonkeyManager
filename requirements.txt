@@ -6,3 +6,4 @@ PyAutoGUI
 Pillow
 keras
 tensorflow
+loguru
